@@ -10,6 +10,47 @@ export interface GameStats {
   thumbnail_url: string;
   creator_name: string;
   creator_avatar_url: string;
+  created?: string;
+  updated?: string;
+  description?: string;
+  maxPlayers?: string;
+  genre?: string;
+  likeRatio?: string;
+  badges?: BadgeInfo[];
+}
+
+export interface BadgeInfo {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  enabled: boolean;
+  statistics?: {
+    awardedCount: number;
+    winRate: number;
+  };
+}
+
+export interface SearchHistoryItem {
+  placeId: string;
+  name: string;
+  thumbnail: string;
+  searchedAt: Date;
+}
+
+export interface GameAnalytics {
+  dailyVisits: number[];
+  dailyPlayers: number[];
+  revenueEstimate?: number;
+  dateLabels: string[];
+}
+
+export interface FavoriteGame {
+  placeId: string;
+  name: string;
+  thumbnail: string;
+  addedAt: Date;
+  notes?: string;
 }
 
 // API Response types for server implementation
