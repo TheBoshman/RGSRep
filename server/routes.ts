@@ -58,7 +58,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get thumbnail URL
   async function getThumbnailUrl(universeId: string) {
-    const url = `https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=${universeId}&size=768x432&format=Png&isCircular=false`;
+    const url = `https://thumbnails.roproxy.com/v1/games/multiget/thumbnails?universeIds=${universeId}&size=768x432&format=Png&isCircular=false`;
     const data = await fetchData(url) as ThumbnailResponse;
     
     if (!data || !data.data || data.data.length === 0) {
@@ -90,7 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get user avatar URL
   async function getUserAvatarUrl(userId: number) {
-    const url = `https://thumbnails.roblox.com/v1/users/avatar?userIds=${userId}&size=150x150&format=Png`;
+    const url = `https://thumbnails.roproxy.com/v1/users/avatar?userIds=${userId}&size=150x150&format=Png`;
     const data = await fetchData(url) as UserThumbnailResponse;
     
     if (!data || !data.data || data.data.length === 0) {

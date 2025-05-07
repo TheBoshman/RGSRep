@@ -79,9 +79,6 @@ export default function GameResults({ gameData, onNewSearch }: GameResultsProps)
                 src={gameData.thumbnail_url} 
                 alt={`${gameData.name} Thumbnail`} 
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = "https://t0.rbxcdn.com/3944ec8b6344da51634c5ccb28a4a63c";
-                }}
               />
             </div>
             
