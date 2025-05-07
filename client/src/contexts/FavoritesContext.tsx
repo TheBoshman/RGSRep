@@ -7,9 +7,9 @@ import { apiRequest } from '@/lib/queryClient';
 interface FavoritesContextType {
   favorites: FavoriteGame[];
   addToFavorites: (game: GameStats) => void;
-  removeFromFavorites: (id: number) => void;
+  removeFromFavorites: (id: number | undefined) => void;
   isGameFavorited: (placeId: string) => boolean;
-  updateFavoriteNotes: (id: number, notes: string) => void;
+  updateFavoriteNotes: (id: number | undefined, notes: string) => void;
   isLoading: boolean;
 }
 
@@ -46,12 +46,12 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     }
   });
   
-  // Update state when data changes
+  // Update state when data changes, but only if it's different
   useEffect(() => {
-    if (data) {
+    if (data && JSON.stringify(data) !== JSON.stringify(favorites)) {
       setFavorites(data);
     }
-  }, [data]);
+  }, [data, JSON.stringify(data)]);
   
   // Add a game to favorites
   const addFavoriteMutation = useMutation({
@@ -97,8 +97,10 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   };
 
   // Remove a game from favorites by ID
-  const removeFromFavorites = (id: number) => {
-    removeFavoriteMutation.mutate(id);
+  const removeFromFavorites = (id: number | undefined) => {
+    if (id !== undefined) {
+      removeFavoriteMutation.mutate(id);
+    }
   };
 
   // Check if a game is in favorites
@@ -107,8 +109,10 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   };
 
   // Update notes for a favorited game
-  const updateFavoriteNotes = (id: number, notes: string) => {
-    updateNotesMutation.mutate({ id, notes });
+  const updateFavoriteNotes = (id: number | undefined, notes: string) => {
+    if (id !== undefined) {
+      updateNotesMutation.mutate({ id, notes });
+    }
   };
 
   // Context value

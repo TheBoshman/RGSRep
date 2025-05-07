@@ -106,7 +106,7 @@ export default function SearchHistory({ onSelect }: SearchHistoryProps) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => removeFromHistory(item.id)}
+                          onClick={() => item.id && removeFromHistory(item.id)}
                           className="h-7 w-7 text-destructive hover:text-destructive"
                           title="Remove from history"
                         >

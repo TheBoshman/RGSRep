@@ -11,7 +11,7 @@ interface SearchHistoryContextType {
   searchHistory: SearchHistoryItem[];
   addToHistory: (game: GameStats) => void;
   clearHistory: () => void;
-  removeFromHistory: (id: number) => void;
+  removeFromHistory: (id: number | undefined) => void;
   isLoading: boolean;
 }
 
@@ -37,12 +37,12 @@ export function SearchHistoryProvider({ children }: { children: ReactNode }) {
     }
   });
   
-  // Update state when data changes
+  // Update state when data changes, but only if it's different
   useEffect(() => {
-    if (data) {
+    if (data && JSON.stringify(data) !== JSON.stringify(searchHistory)) {
       setSearchHistory(data);
     }
-  }, [data]);
+  }, [data, JSON.stringify(data)]);
   
   // Clear all search history
   const clearHistoryMutation = useMutation({
@@ -78,8 +78,10 @@ export function SearchHistoryProvider({ children }: { children: ReactNode }) {
     clearHistoryMutation.mutate();
   };
   
-  const removeFromHistory = (id: number) => {
-    removeHistoryItemMutation.mutate(id);
+  const removeFromHistory = (id: number | undefined) => {
+    if (id !== undefined) {
+      removeHistoryItemMutation.mutate(id);
+    }
   };
   
   // Context value

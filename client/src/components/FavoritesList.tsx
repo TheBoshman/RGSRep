@@ -33,12 +33,14 @@ export default function FavoritesList({ onSelect }: FavoritesListProps) {
     return null;
   }
 
-  const handleEditStart = (id: number, initialText: string = "") => {
-    setEditingId(id);
-    setEditText(initialText || "");
+  const handleEditStart = (id: number | undefined, initialText: string = "") => {
+    if (id !== undefined) {
+      setEditingId(id);
+      setEditText(initialText || "");
+    }
   };
 
-  const handleEditSave = (id: number) => {
+  const handleEditSave = (id: number | undefined) => {
     updateFavoriteNotes(id, editText);
     setEditingId(null);
   };
@@ -117,7 +119,7 @@ export default function FavoritesList({ onSelect }: FavoritesListProps) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleEditStart(item.id, item.notes)}
+                            onClick={() => item.id && handleEditStart(item.id, item.notes)}
                             title="Edit notes"
                           >
                             <Pencil className="h-4 w-4" />
@@ -125,7 +127,7 @@ export default function FavoritesList({ onSelect }: FavoritesListProps) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeFromFavorites(item.id)}
+                            onClick={() => item.id && removeFromFavorites(item.id)}
                             className="text-destructive hover:text-destructive"
                             title="Remove from favorites"
                           >
