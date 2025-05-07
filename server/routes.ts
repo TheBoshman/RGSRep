@@ -100,6 +100,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return data.data[0].imageUrl || "No avatar available";
   }
 
+  // Game details type interface
+  interface GameDetailsResponse {
+    data: Array<{
+      description?: string;
+      created?: string;
+      updated?: string;
+      maxPlayers?: number;
+      genre?: string;
+    }>;
+  }
+
+  // Badge type interface
+  interface BadgeResponse {
+    data: Array<{
+      id: number;
+      name: string;
+      description: string;
+      imageUrl: string;
+      enabled: boolean;
+      statistics?: {
+        awardedCount: number;
+        winRatePercentage: number;
+      };
+    }>;
+  }
+
   // Get game details
   async function getGameDetails(universeId: string) {
     try {
@@ -109,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Unable to fetch game details: ${response.status}`);
         return null;
       }
-      const data = await response.json();
+      const data = await response.json() as GameDetailsResponse;
       return data.data && data.data.length > 0 ? data.data[0] : null;
     } catch (error) {
       console.error("Error fetching game details:", error);
@@ -126,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Unable to fetch badges: ${response.status}`);
         return [];
       }
-      const data = await response.json();
+      const data = await response.json() as BadgeResponse;
       return data.data || [];
     } catch (error) {
       console.error("Error fetching badges:", error);
@@ -172,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const likeRatio = totalVotes > 0 ? Math.round((upVotes / totalVotes) * 100).toString() : "0";
 
       // Format badges
-      const formattedBadges = badges.map(badge => ({
+      const formattedBadges = badges.map((badge: BadgeResponse['data'][0]) => ({
         id: badge.id.toString(),
         name: badge.name,
         description: badge.description,
