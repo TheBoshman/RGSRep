@@ -68,8 +68,10 @@ export function SearchHistoryProvider({ children }: { children: ReactNode }) {
   // Note: The actual saving happens in the server when fetching game data
   const addToHistory = (game: GameStats) => {
     // This is now handled automatically by the server when a game is fetched
-    // We'll just update the client-side cache to show the update immediately
-    queryClient.invalidateQueries({ queryKey: ['/api/search-history'] });
+    // We'll manually update the client-side cache only if needed
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['/api/search-history'] });
+    }, 500);
   };
   
   const clearHistory = () => {

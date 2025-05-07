@@ -32,6 +32,7 @@ export interface BadgeInfo {
 }
 
 export interface SearchHistoryItem {
+  id?: number;
   placeId: string;
   name: string;
   thumbnail: string;
@@ -46,6 +47,7 @@ export interface GameAnalytics {
 }
 
 export interface FavoriteGame {
+  id?: number;
   placeId: string;
   name: string;
   thumbnail: string;
