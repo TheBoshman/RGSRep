@@ -1,0 +1,254 @@
+
+
+
+import requests
+import time
+import json
+
+
+def fetch_data(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching data: {e}")
+        return None
+
+
+def get_universe_id_from_place_id(place_id):
+    url = f"https://apis.roproxy.com/universes/v1/places/{place_id}/universe"
+    data = fetch_data(url)
+    if data and "universeId" in data:
+        return data["universeId"]
+    print(f"Failed to get Universe ID for Place ID {place_id}")
+    return None
+
+
+def get_game_data(universe_id):
+    url = f"https://games.roproxy.com/v1/games?universeIds={universe_id}"
+    data = fetch_data(url)
+    if data and "data" in data and len(data["data"]) > 0:
+        return data["data"][0]
+    print(f"No game data found for Universe ID {universe_id}")
+    return None
+
+
+def get_vote_data(universe_id):
+    url = f"https://games.roblox.com/v1/games/votes?universeIds={universe_id}"
+    data = fetch_data(url)
+    if data and "data" in data and len(data["data"]) > 0:
+        return data["data"][0]
+    print(f"No vote data found for Universe ID {universe_id}")
+    return None
+
+
+def get_thumbnail_url(universe_id):
+    url = f"https://thumbnails.roproxy.com/v1/games/multiget/thumbnails?universeIds={universe_id}&size=768x432&format=Png&isCircular=false"
+    data = fetch_data(url)
+
+    if data and "data" in data and len(data["data"]) > 0:
+        game_data = data["data"][0]
+        if "thumbnails" in game_data and len(game_data["thumbnails"]) > 0:
+            thumbnail = game_data["thumbnails"][0]
+            image_url = thumbnail.get("imageUrl", None)
+            if image_url:
+                return image_url
+    print(
+        f"Error: 'imageUrl' not found in the response for Universe ID {universe_id}. Full response: {data}"
+    )
+    return None
+
+
+def get_user_thumbnail_url(user_id):
+    """Fetches the user's avatar thumbnail URL from RoProxy."""
+    url = f"https://thumbnails.roproxy.com/v1/users/avatar?userIds={user_id}&size=150x150&format=Png"
+    data = fetch_data(url)
+
+    if data and "data" in data and len(data["data"]) > 0:
+        return data["data"][0].get("imageUrl", "No avatar available")
+
+    print(f"Error: Could not retrieve avatar for User ID {user_id}")
+    return "No avatar available"
+
+
+def get_creator_info(user_id):
+    """Fetches the creator's name and avatar thumbnail."""
+    url = f"https://users.roblox.com/v1/users/{user_id}"
+    data = fetch_data(url)
+    if data:
+        creator_name = data.get("name", "Unknown")
+        creator_avatar_url = get_user_thumbnail_url(user_id)
+        return creator_name, creator_avatar_url
+
+    print(f"Error: Creator information not found for User ID {user_id}. Full response: {data}")
+    return None, None
+
+
+def main():
+    place_ids = ["920587237",
+                "4924922222",
+                "1962086868",
+                "2753915549",
+                "370731277",
+                "142823291",
+                "606849621",
+                "292439477",
+                "537413528",
+                "286090429",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+                "18320910606",
+                "11925825387",
+                "6361145282",
+]
+    game_info_list = []
+
+    for place_id in place_ids:
+        print(f"\nFetching data for Place ID: {place_id}")
+
+        universe_id = get_universe_id_from_place_id(place_id)
+        if not universe_id:
+            continue
+
+        game_data = get_game_data(universe_id)
+        if game_data:
+            print(f"Name: {game_data.get('name', 'N/A')}")
+            print(f"Playing: {game_data.get('playing', 'N/A')}")
+            print(f"Visits: {game_data.get('visits', 'N/A')}")
+            print(f"Favorites: {game_data.get('favoritedCount', 'N/A')}")
+
+        vote_data = get_vote_data(universe_id)
+        if vote_data:
+            print(f"Likes: {vote_data.get('upVotes', 'N/A')}")
+            print(f"Dislikes: {vote_data.get('downVotes', 'N/A')}")
+
+        thumbnail_url = get_thumbnail_url(universe_id)
+        if thumbnail_url:
+            print(f"Thumbnail URL: {thumbnail_url}")
+
+        creator_data = game_data.get('creator', {})
+        creator_name = creator_data.get('name', 'Unknown')
+        creator_user_id = creator_data.get('id', None)
+        creator_avatar_url = "No avatar available"
+        if creator_user_id:
+            _, creator_avatar_url = get_creator_info(creator_user_id)
+            print(f"Creator: {creator_name}")
+            print(f"Avatar: {creator_avatar_url}")
+
+        game_info = {
+            "place_id": place_id,
+            "universe_id": universe_id,
+            "name": game_data.get('name', 'N/A'),
+            "playing": game_data.get('playing', 'N/A'),
+            "visits": game_data.get('visits', 'N/A'),
+            "favoritedCount": game_data.get('favoritedCount', 'N/A'),
+            "upVotes": vote_data.get('upVotes', 'N/A') if vote_data else 'N/A',
+            "downVotes": vote_data.get('downVotes', 'N/A') if vote_data else 'N/A',
+            "thumbnail_url": thumbnail_url,
+            "creator_name": creator_name,
+            "creator_avatar_url": creator_avatar_url
+        }
+        game_info_list.append(game_info)
+
+        time.sleep(2)
+
+    with open('filtered_game_data.json', 'w') as f:
+        json.dump(game_info_list, f, indent=4)
+
+    print("Filtered game data saved to filtered_game_data.json")
+
+
+if __name__ == "__main__":
+    main()
