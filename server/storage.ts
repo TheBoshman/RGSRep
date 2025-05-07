@@ -1,39 +1,143 @@
-import { users, type User, type InsertUser } from "@shared/schema";
-
-// modify the interface with any CRUD methods
-// you might need
+import { 
+  users, type User, type InsertUser,
+  searchHistory, type SearchHistory, type InsertSearchHistory,
+  favorites, type Favorite, type InsertFavorite,
+  badges, type Badge, type InsertBadge,
+  GameStats
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
+  // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  // Search history methods
+  getSearchHistory(userId?: number, limit?: number): Promise<SearchHistory[]>;
+  saveSearchHistory(searchData: InsertSearchHistory): Promise<SearchHistory>;
+  deleteSearchHistory(id: number): Promise<void>;
+  clearSearchHistory(userId?: number): Promise<void>;
+  
+  // Favorites methods
+  getFavorites(userId?: number): Promise<Favorite[]>;
+  saveFavorite(favoriteData: InsertFavorite): Promise<Favorite>;
+  deleteFavorite(id: number): Promise<void>;
+  updateFavoriteNotes(id: number, notes: string): Promise<Favorite>;
+  
+  // Badges methods
+  getGameBadges(gameId: string): Promise<Badge[]>;
+  saveBadge(badgeData: InsertBadge): Promise<Badge>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  currentId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.currentId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
+  // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
+  }
+
+  // Search history methods
+  async getSearchHistory(userId?: number, limit: number = 10): Promise<SearchHistory[]> {
+    let query = db.select()
+      .from(searchHistory)
+      .orderBy(desc(searchHistory.searchedAt))
+      .limit(limit);
+      
+    if (userId) {
+      query = query.where(eq(searchHistory.userId, userId));
+    }
+    
+    return await query;
+  }
+
+  async saveSearchHistory(searchData: InsertSearchHistory): Promise<SearchHistory> {
+    const [savedSearch] = await db
+      .insert(searchHistory)
+      .values(searchData)
+      .returning();
+    
+    return savedSearch;
+  }
+
+  async deleteSearchHistory(id: number): Promise<void> {
+    await db.delete(searchHistory).where(eq(searchHistory.id, id));
+  }
+
+  async clearSearchHistory(userId?: number): Promise<void> {
+    let query = db.delete(searchHistory);
+    
+    if (userId) {
+      query = query.where(eq(searchHistory.userId, userId));
+    }
+    
+    await query;
+  }
+
+  // Favorites methods
+  async getFavorites(userId?: number): Promise<Favorite[]> {
+    let query = db.select().from(favorites).orderBy(desc(favorites.addedAt));
+    
+    if (userId) {
+      query = query.where(eq(favorites.userId, userId));
+    }
+    
+    return await query;
+  }
+
+  async saveFavorite(favoriteData: InsertFavorite): Promise<Favorite> {
+    const [favorite] = await db
+      .insert(favorites)
+      .values(favoriteData)
+      .returning();
+    
+    return favorite;
+  }
+
+  async deleteFavorite(id: number): Promise<void> {
+    await db.delete(favorites).where(eq(favorites.id, id));
+  }
+
+  async updateFavoriteNotes(id: number, notes: string): Promise<Favorite> {
+    const [favorite] = await db
+      .update(favorites)
+      .set({ notes })
+      .where(eq(favorites.id, id))
+      .returning();
+    
+    return favorite;
+  }
+
+  // Badges methods
+  async getGameBadges(gameId: string): Promise<Badge[]> {
+    return await db
+      .select()
+      .from(badges)
+      .where(eq(badges.gameId, gameId));
+  }
+
+  async saveBadge(badgeData: InsertBadge): Promise<Badge> {
+    const [badge] = await db
+      .insert(badges)
+      .values(badgeData)
+      .returning();
+    
+    return badge;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

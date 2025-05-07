@@ -232,6 +232,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         genre: gameDetails?.genre || "Unknown"
       };
 
+      // Save search to history (without user ID for now)
+      try {
+        await storage.saveSearchHistory({
+          placeId: placeId,
+          name: gameData.name,
+          thumbnail: thumbnailUrl,
+          searchedAt: new Date()
+        });
+      } catch (dbError) {
+        console.error("Error saving search history:", dbError);
+        // Continue with the response even if saving to history fails
+      }
+
+      // Save badge information if not already in database
+      try {
+        for (const badge of formattedBadges) {
+          await storage.saveBadge({
+            id: badge.id,
+            gameId: universeId,
+            name: badge.name,
+            description: badge.description,
+            imageUrl: badge.imageUrl,
+            enabled: badge.enabled,
+            awardedCount: badge.statistics?.awardedCount,
+            winRate: badge.statistics?.winRate
+          });
+        }
+      } catch (badgeError) {
+        console.error("Error saving badges:", badgeError);
+        // Continue with the response even if saving badges fails
+      }
+
       res.json(result);
     } catch (error) {
       console.error("Error fetching game data:", error);
@@ -240,6 +272,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "An unexpected error occurred" });
       }
+    }
+  });
+
+  // Get search history
+  app.get("/api/search-history", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const history = await storage.getSearchHistory(undefined, limit);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching search history:", error);
+      res.status(500).json({ message: "Failed to fetch search history" });
+    }
+  });
+
+  // Clear all search history
+  app.delete("/api/search-history", async (req, res) => {
+    try {
+      await storage.clearSearchHistory();
+      res.json({ message: "Search history cleared successfully" });
+    } catch (error) {
+      console.error("Error clearing search history:", error);
+      res.status(500).json({ message: "Failed to clear search history" });
+    }
+  });
+
+  // Delete a specific search history item
+  app.delete("/api/search-history/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+      }
+      
+      await storage.deleteSearchHistory(id);
+      res.json({ message: "Search history item deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting search history item:", error);
+      res.status(500).json({ message: "Failed to delete search history item" });
+    }
+  });
+
+  // Get favorites
+  app.get("/api/favorites", async (req, res) => {
+    try {
+      const favorites = await storage.getFavorites();
+      res.json(favorites);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+      res.status(500).json({ message: "Failed to fetch favorites" });
+    }
+  });
+
+  // Add to favorites
+  app.post("/api/favorites", async (req, res) => {
+    try {
+      const { placeId, name, thumbnail, notes } = req.body;
+      
+      if (!placeId || !name || !thumbnail) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const favorite = await storage.saveFavorite({
+        placeId,
+        name,
+        thumbnail,
+        addedAt: new Date(),
+        notes
+      });
+      
+      res.status(201).json(favorite);
+    } catch (error) {
+      console.error("Error adding favorite:", error);
+      res.status(500).json({ message: "Failed to add favorite" });
+    }
+  });
+
+  // Remove from favorites
+  app.delete("/api/favorites/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+      }
+      
+      await storage.deleteFavorite(id);
+      res.json({ message: "Favorite removed successfully" });
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+      res.status(500).json({ message: "Failed to remove favorite" });
+    }
+  });
+
+  // Update favorite notes
+  app.patch("/api/favorites/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { notes } = req.body;
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+      }
+      
+      if (notes === undefined) {
+        return res.status(400).json({ message: "Notes field is required" });
+      }
+      
+      const updatedFavorite = await storage.updateFavoriteNotes(id, notes);
+      res.json(updatedFavorite);
+    } catch (error) {
+      console.error("Error updating favorite notes:", error);
+      res.status(500).json({ message: "Failed to update favorite notes" });
+    }
+  });
+
+  // Get game badges
+  app.get("/api/game/:gameId/badges", async (req, res) => {
+    try {
+      const { gameId } = req.params;
+      const badges = await storage.getGameBadges(gameId);
+      res.json(badges);
+    } catch (error) {
+      console.error("Error fetching game badges:", error);
+      res.status(500).json({ message: "Failed to fetch game badges" });
     }
   });
 
