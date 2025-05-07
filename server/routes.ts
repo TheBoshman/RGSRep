@@ -100,6 +100,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return data.data[0].imageUrl || "No avatar available";
   }
 
+  // Get game details
+  async function getGameDetails(universeId: string) {
+    try {
+      const url = `https://games.roproxy.com/v1/games/multiget-place-details?universeIds=${universeId}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.log(`Unable to fetch game details: ${response.status}`);
+        return null;
+      }
+      const data = await response.json();
+      return data.data && data.data.length > 0 ? data.data[0] : null;
+    } catch (error) {
+      console.error("Error fetching game details:", error);
+      return null;
+    }
+  }
+
+  // Get game badges
+  async function getGameBadges(universeId: string) {
+    try {
+      const url = `https://badges.roproxy.com/v1/universes/${universeId}/badges?limit=10&sortOrder=Asc`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.log(`Unable to fetch badges: ${response.status}`);
+        return [];
+      }
+      const data = await response.json();
+      return data.data || [];
+    } catch (error) {
+      console.error("Error fetching badges:", error);
+      return [];
+    }
+  }
+
   // Game data endpoint
   app.get("/api/roblox/game/:placeId", async (req, res) => {
     try {
@@ -116,10 +150,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const universeId = await getUniverseIdFromPlaceId(placeId);
 
       // Then get game data and vote data in parallel
-      const [gameData, voteData, thumbnailUrl] = await Promise.all([
+      const [gameData, voteData, thumbnailUrl, gameDetails, badges] = await Promise.all([
         getGameData(universeId),
         getVoteData(universeId),
-        getThumbnailUrl(universeId)
+        getThumbnailUrl(universeId),
+        getGameDetails(universeId),
+        getGameBadges(universeId)
       ]);
 
       // Get creator info
@@ -128,6 +164,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         getUserInfo(creatorId),  // We already have the name from gameData
         getUserAvatarUrl(creatorId)
       ]);
+
+      // Calculate like ratio
+      const upVotes = voteData.upVotes;
+      const downVotes = voteData.downVotes;
+      const totalVotes = upVotes + downVotes;
+      const likeRatio = totalVotes > 0 ? Math.round((upVotes / totalVotes) * 100).toString() : "0";
+
+      // Format badges
+      const formattedBadges = badges.map(badge => ({
+        id: badge.id.toString(),
+        name: badge.name,
+        description: badge.description,
+        imageUrl: badge.imageUrl,
+        enabled: badge.enabled,
+        statistics: badge.statistics ? {
+          awardedCount: badge.statistics.awardedCount,
+          winRate: badge.statistics.winRatePercentage
+        } : undefined
+      }));
 
       // Compile all data
       const result = {
@@ -141,7 +196,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         downVotes: voteData.downVotes.toString(),
         thumbnail_url: thumbnailUrl,
         creator_name: gameData.creator.name,
-        creator_avatar_url: creatorAvatarUrl
+        creator_avatar_url: creatorAvatarUrl,
+        likeRatio,
+        badges: formattedBadges,
+        description: gameDetails?.description || "No description available",
+        created: gameDetails?.created,
+        updated: gameDetails?.updated,
+        maxPlayers: gameDetails?.maxPlayers?.toString() || "Unknown",
+        genre: gameDetails?.genre || "Unknown"
       };
 
       res.json(result);

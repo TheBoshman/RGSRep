@@ -1,3 +1,4 @@
+import React, { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GameStats } from "@/lib/roblox.types";
@@ -20,7 +21,7 @@ export default function GameResults({ gameData, onNewSearch }: GameResultsProps)
   const { toast } = useToast();
 
   // Add to search history when results are shown
-  React.useEffect(() => {
+  useEffect(() => {
     if (gameData) {
       addToHistory(gameData);
     }
@@ -201,7 +202,7 @@ export default function GameResults({ gameData, onNewSearch }: GameResultsProps)
       </div>
       
       {/* Additional Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
         <Button 
           variant={isGameFavorited(gameData.place_id) ? "default" : "outline"}
           className={`h-12 ${isGameFavorited(gameData.place_id) ? "bg-red-500 hover:bg-red-600" : "border-red-300 text-red-500 hover:text-red-600"}`}
@@ -219,6 +220,58 @@ export default function GameResults({ gameData, onNewSearch }: GameResultsProps)
           {isInCompare(gameData.place_id) ? "Remove from Comparison" : "Add to Comparison"}
         </Button>
       </div>
+      
+      {/* Game Description */}
+      {gameData.description && gameData.description !== "No description available" && (
+        <Card className="shadow-md mb-8">
+          <CardContent className="p-6">
+            <h3 className="text-xl font-bold mb-2 flex items-center">
+              <Info className="mr-2 h-5 w-5 text-[#0D72EF]" />
+              Description
+            </h3>
+            <p className="text-[#393B3D] whitespace-pre-wrap">{gameData.description}</p>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Game Badges Display */}
+      {gameData.badges && gameData.badges.length > 0 && (
+        <div className="mt-6">
+          <Card className="shadow-md">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center">
+                <Badge className="mr-2 h-5 w-5 text-amber-500" />
+                Game Badges
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {gameData.badges.map((badge) => (
+                  <div 
+                    key={badge.id}
+                    className="bg-accent/40 p-3 rounded-lg flex flex-col items-center hover:bg-accent"
+                  >
+                    <img 
+                      src={badge.imageUrl} 
+                      alt={badge.name}
+                      className="w-16 h-16 mb-2 rounded"
+                    />
+                    <h4 className="font-medium text-sm text-center">{badge.name}</h4>
+                    {badge.statistics && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Awarded: {formatNumber(badge.statistics.awardedCount.toString())}
+                      </p>
+                    )}
+                    {!badge.enabled && (
+                      <span className="mt-1 px-2 py-0.5 rounded-full text-xs bg-red-500 text-white">
+                        Disabled
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

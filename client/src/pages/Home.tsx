@@ -5,12 +5,17 @@ import GameResults from "@/components/GameResults";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import Footer from "@/components/Footer";
+import SearchHistory from "@/components/SearchHistory";
+import FavoritesList from "@/components/FavoritesList";
+import CompareGames from "@/components/CompareGames";
 import { useQuery } from "@tanstack/react-query";
 import { GameStats } from "@/lib/roblox.types";
+import { useCompare } from "@/contexts/CompareContext";
 
 export default function Home() {
   const [placeId, setPlaceId] = useState<string>("");
   const [isSearchSubmitted, setIsSearchSubmitted] = useState(false);
+  const { comparedGames } = useCompare();
   
   const { 
     data: gameData, 
@@ -40,7 +45,11 @@ export default function Home() {
       
       <main className="container mx-auto px-4 py-8 flex-grow">
         {!isSearchSubmitted && (
-          <SearchForm onSearch={handleSearch} />
+          <>
+            <SearchForm onSearch={handleSearch} />
+            <SearchHistory onSelect={handleSearch} />
+            <FavoritesList onSelect={handleSearch} />
+          </>
         )}
         
         {isSearchSubmitted && isLoading && (
@@ -55,10 +64,13 @@ export default function Home() {
         )}
         
         {isSearchSubmitted && !isLoading && !isError && gameData && (
-          <GameResults 
-            gameData={gameData} 
-            onNewSearch={handleNewSearch} 
-          />
+          <>
+            <GameResults 
+              gameData={gameData} 
+              onNewSearch={handleNewSearch} 
+            />
+            {comparedGames.length > 0 && <CompareGames />}
+          </>
         )}
       </main>
       
