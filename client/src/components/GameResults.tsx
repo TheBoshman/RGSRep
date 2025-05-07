@@ -2,7 +2,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GameStats } from "@/lib/roblox.types";
 import { formatNumber } from "@/lib/utils";
-import { Gamepad, Search, Users, LineChart, Heart } from "lucide-react";
+import { Gamepad, Search, Users, LineChart, Heart, Star, Scale, Info, Badge } from "lucide-react";
+import { useFavorites } from "@/contexts/FavoritesContext";
+import { useCompare } from "@/contexts/CompareContext";
+import { useSearchHistory } from "@/contexts/SearchHistoryContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface GameResultsProps {
   gameData: GameStats;
@@ -10,6 +14,58 @@ interface GameResultsProps {
 }
 
 export default function GameResults({ gameData, onNewSearch }: GameResultsProps) {
+  const { addToFavorites, isGameFavorited, removeFromFavorites } = useFavorites();
+  const { addToCompare, isInCompare, removeFromCompare, isCompareLimit } = useCompare();
+  const { addToHistory } = useSearchHistory();
+  const { toast } = useToast();
+
+  // Add to search history when results are shown
+  React.useEffect(() => {
+    if (gameData) {
+      addToHistory(gameData);
+    }
+  }, [gameData, addToHistory]);
+
+  const handleAddToFavorites = () => {
+    if (isGameFavorited(gameData.place_id)) {
+      removeFromFavorites(gameData.place_id);
+      toast({
+        title: "Removed from favorites",
+        description: `${gameData.name} has been removed from your favorites`,
+      });
+    } else {
+      addToFavorites(gameData);
+      toast({
+        title: "Added to favorites",
+        description: `${gameData.name} has been added to your favorites`,
+      });
+    }
+  };
+
+  const handleCompare = () => {
+    if (isInCompare(gameData.place_id)) {
+      removeFromCompare(gameData.place_id);
+      toast({
+        title: "Removed from comparison",
+        description: `${gameData.name} has been removed from comparison`,
+      });
+    } else {
+      const success = addToCompare(gameData);
+      if (success) {
+        toast({
+          title: "Added to comparison",
+          description: `${gameData.name} has been added to comparison`,
+        });
+      } else {
+        toast({
+          title: "Comparison limit reached",
+          description: "You can compare up to 4 games at a time. Remove a game to add another.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto">
       {/* Game Header */}
@@ -124,7 +180,7 @@ export default function GameResults({ gameData, onNewSearch }: GameResultsProps)
       </div>
       
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
         <Button 
           asChild
           className="bg-[#0D72EF] hover:bg-[#00A2FF] text-white h-12"
@@ -141,6 +197,26 @@ export default function GameResults({ gameData, onNewSearch }: GameResultsProps)
         >
           <Search className="mr-2 h-5 w-5" />
           Search Another Game
+        </Button>
+      </div>
+      
+      {/* Additional Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <Button 
+          variant={isGameFavorited(gameData.place_id) ? "default" : "outline"}
+          className={`h-12 ${isGameFavorited(gameData.place_id) ? "bg-red-500 hover:bg-red-600" : "border-red-300 text-red-500 hover:text-red-600"}`}
+          onClick={handleAddToFavorites}
+        >
+          <Star className="mr-2 h-5 w-5" />
+          {isGameFavorited(gameData.place_id) ? "Remove from Favorites" : "Add to Favorites"}
+        </Button>
+        <Button 
+          variant={isInCompare(gameData.place_id) ? "default" : "outline"}
+          className={`h-12 ${isInCompare(gameData.place_id) ? "bg-purple-500 hover:bg-purple-600" : "border-purple-300 text-purple-500 hover:text-purple-600"}`}
+          onClick={handleCompare}
+        >
+          <Scale className="mr-2 h-5 w-5" />
+          {isInCompare(gameData.place_id) ? "Remove from Comparison" : "Add to Comparison"}
         </Button>
       </div>
     </div>
