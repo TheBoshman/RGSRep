@@ -1,6 +1,7 @@
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { SearchHistoryItem, GameStats } from '@/lib/roblox.types';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 // Maximum number of items to keep in search history
 const MAX_SEARCH_HISTORY = 20;
@@ -10,7 +11,8 @@ interface SearchHistoryContextType {
   searchHistory: SearchHistoryItem[];
   addToHistory: (game: GameStats) => void;
   clearHistory: () => void;
-  removeFromHistory: (placeId: string) => void;
+  removeFromHistory: (id: number) => void;
+  isLoading: boolean;
 }
 
 // Create the context
@@ -18,49 +20,73 @@ const SearchHistoryContext = createContext<SearchHistoryContextType | undefined>
 
 // Provider component
 export function SearchHistoryProvider({ children }: { children: ReactNode }) {
-  const [searchHistory, setSearchHistory] = useLocalStorage<SearchHistoryItem[]>(
-    'roblox-game-stats-history',
-    []
-  );
-
-  // Add a game to search history
-  const addToHistory = (game: GameStats) => {
-    setSearchHistory(prevHistory => {
-      // First, remove the game if it already exists to avoid duplicates
-      const filteredHistory = prevHistory.filter(item => item.placeId !== game.place_id);
-      
-      // Create a new history item
-      const newItem: SearchHistoryItem = {
-        placeId: game.place_id,
-        name: game.name,
-        thumbnail: game.thumbnail_url,
-        searchedAt: new Date()
-      };
-      
-      // Add the new item to the beginning of the array
-      const newHistory = [newItem, ...filteredHistory];
-      
-      // Keep only the most recent MAX_SEARCH_HISTORY items
-      return newHistory.slice(0, MAX_SEARCH_HISTORY);
-    });
-  };
-
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
+  const queryClient = useQueryClient();
+  
+  // Fetch search history from API
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['/api/search-history'],
+    select: (data: any[]) => {
+      return data.map(item => ({
+        id: item.id,
+        placeId: item.placeId,
+        name: item.name,
+        thumbnail: item.thumbnail,
+        searchedAt: new Date(item.searchedAt)
+      }));
+    }
+  });
+  
+  // Update state when data changes
+  useEffect(() => {
+    if (data) {
+      setSearchHistory(data);
+    }
+  }, [data]);
+  
   // Clear all search history
-  const clearHistory = () => setSearchHistory([]);
-
-  // Remove a specific game from search history
-  const removeFromHistory = (placeId: string) => {
-    setSearchHistory(prevHistory => 
-      prevHistory.filter(item => item.placeId !== placeId)
-    );
+  const clearHistoryMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest('DELETE', '/api/search-history');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/search-history'] });
+    }
+  });
+  
+  // Remove a specific search history item
+  const removeHistoryItemMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest('DELETE', `/api/search-history/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/search-history'] });
+    }
+  });
+  
+  // Add a game to search history (just for context API consistency)
+  // Note: The actual saving happens in the server when fetching game data
+  const addToHistory = (game: GameStats) => {
+    // This is now handled automatically by the server when a game is fetched
+    // We'll just update the client-side cache to show the update immediately
+    queryClient.invalidateQueries({ queryKey: ['/api/search-history'] });
   };
-
+  
+  const clearHistory = () => {
+    clearHistoryMutation.mutate();
+  };
+  
+  const removeFromHistory = (id: number) => {
+    removeHistoryItemMutation.mutate(id);
+  };
+  
   // Context value
   const value = {
     searchHistory,
     addToHistory,
     clearHistory,
-    removeFromHistory
+    removeFromHistory,
+    isLoading
   };
 
   return (

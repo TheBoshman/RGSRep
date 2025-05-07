@@ -53,16 +53,18 @@ export class DatabaseStorage implements IStorage {
 
   // Search history methods
   async getSearchHistory(userId?: number, limit: number = 10): Promise<SearchHistory[]> {
-    let query = db.select()
-      .from(searchHistory)
-      .orderBy(desc(searchHistory.searchedAt))
-      .limit(limit);
-      
     if (userId) {
-      query = query.where(eq(searchHistory.userId, userId));
+      return await db.select()
+        .from(searchHistory)
+        .where(eq(searchHistory.userId, userId))
+        .orderBy(desc(searchHistory.searchedAt))
+        .limit(limit);
+    } else {
+      return await db.select()
+        .from(searchHistory)
+        .orderBy(desc(searchHistory.searchedAt))
+        .limit(limit);
     }
-    
-    return await query;
   }
 
   async saveSearchHistory(searchData: InsertSearchHistory): Promise<SearchHistory> {
@@ -79,24 +81,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clearSearchHistory(userId?: number): Promise<void> {
-    let query = db.delete(searchHistory);
-    
     if (userId) {
-      query = query.where(eq(searchHistory.userId, userId));
+      await db.delete(searchHistory).where(eq(searchHistory.userId, userId));
+    } else {
+      await db.delete(searchHistory);
     }
-    
-    await query;
   }
 
   // Favorites methods
   async getFavorites(userId?: number): Promise<Favorite[]> {
-    let query = db.select().from(favorites).orderBy(desc(favorites.addedAt));
-    
     if (userId) {
-      query = query.where(eq(favorites.userId, userId));
+      return await db.select()
+        .from(favorites)
+        .where(eq(favorites.userId, userId))
+        .orderBy(desc(favorites.addedAt));
+    } else {
+      return await db.select()
+        .from(favorites)
+        .orderBy(desc(favorites.addedAt));
     }
-    
-    return await query;
   }
 
   async saveFavorite(favoriteData: InsertFavorite): Promise<Favorite> {
